@@ -6,7 +6,8 @@ from .serializers import HabitSerializer
 
 # Create your views here.
 class HabitViewSet(viewsets.ModelViewSet):
-    queryset = Habit.object.all()
+    queryset = Habit.objects.all()
+
     serializer_class = HabitSerializer
     permission_classes = [permissions.IsAuthenticated]
 

@@ -12,7 +12,7 @@ class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description =models.TextField(blank=True)
-    difficulty = models.CharField(max_length=10,choices=DIFFICULTY_CHOICES)
+    difficulty = models.IntegerField(default=1)
     category = models.CharField(max_length=100, blank=True)
     base_score = models.IntegerField(default=10)
     created_at = models.DateField(auto_now_add=True)

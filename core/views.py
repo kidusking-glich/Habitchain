@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
 from .models import Habit 
 from .serializers import HabitSerializer
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 # Create your views here.
@@ -11,12 +12,16 @@ class HabitViewSet(viewsets.ModelViewSet):
     serializer_class = HabitSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
+
     filter_backends = [
+        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter
+        filters.OrderingFilter,
     ]
 
-    search_fields = ['name', 'description']
+    search_fields = [ 'title','description']
+    filterset_fields = ['difficulty', 'category']
     ordering_fields =['created_at', 'difficulty']
     ordering = ['-created_at']
 

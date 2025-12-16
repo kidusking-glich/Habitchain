@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Habit, HabitDependency, Streak, DifficultyAdjustmentLog
+from .models import Habit, HabitCompletion, HabitDependency, Streak, DifficultyAdjustmentLog
 
 
 class HabitSerializer(serializers.ModelSerializer):
@@ -22,3 +22,10 @@ class DifficultyAdjustmentLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = DifficultyAdjustmentLog
         fields = "__all__"
+
+
+class HabitCompletionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HabitCompletion
+        fields = ['id', 'habit', 'completed_at']
+        read_only_fields = ['completed_at']

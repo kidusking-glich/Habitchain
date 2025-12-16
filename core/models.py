@@ -46,4 +46,12 @@ class DifficultyAdjustmentLog(models.Model):
 
     def __str__(self):
         return f"{self.habit.name} adjusted {self.old_difficulty} → {self.new_difficulty}"
+
+class HabitCompletion(models.Model):
+    habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name="completions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    completed_at = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('habit', 'completed_at')
     

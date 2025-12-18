@@ -3,7 +3,10 @@ from rest_framework import viewsets, permissions, filters
 from .models import Habit, HabitCompletion 
 from .serializers import HabitCompletionSerializer, HabitSerializer
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 
 
 
@@ -95,6 +98,13 @@ class HabitViewSet(viewsets.ModelViewSet):
     ),
 )
 
+@extend_schema_view(
+    list=extend_schema(summary="List Habit Completions"),
+    create=extend_schema(summary="Complete a Habit"),
+    retrieve=extend_schema(summary="Retrieve Completation"),
+    destroy=extend_schema(summary="Undo Habit Completion"),
+)
+
 class HabitCompletationViewSet(viewsets.ModelViewSet):
     serializer_class = HabitCompletionSerializer
    #permission_classes = [IsAuthenticated]
@@ -110,3 +120,25 @@ class HabitCompletationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @extend_schema(tags=["Habit Streaks"])
+
+
+    @action(detail=True, methods=['get'])
+    def streak(self, request, pk=None):
+        return Response({"message": "streak logic not implemented yet"})
+
+    @extend_schema(
+            summary="Get Streak History",
+            description=(
+                "Returns all streak segments for this habit, including start and end dates of each streak.",
+                "for each streak block."
+            ),
+            responses={
+                200: OpenApiTypes.OBJECT,
+            }
+            
+    )
+    
+    @action(detail=True, methods=['get'])
+    def straek_history(self, request, pk=None):
+        return Response({"message": "streak history logic not implemented yet"})

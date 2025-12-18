@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 
 # Create your views here.
@@ -16,6 +16,17 @@ from rest_framework.response import Response
     list=extend_schema(tags=["Habit Completions"]),
     create=extend_schema(tags=["Habit Completions"]),
 )
+
+#login endpoint 
+@extend_schema(
+    tags=["Authentication"],
+    summary="login using username and password",
+    description="returns access and refresh JWT tokens."
+)
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    pass
+
 
 @extend_schema_view(
     list=extend_schema(

@@ -55,3 +55,24 @@ class HabitCompletion(models.Model):
     class Meta:
         unique_together = ('habit', 'completed_at')
     
+class HabitDependency(models.Model):
+    habit = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        related_name="dependencies"
+    )
+    depends_on = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        related_name="required_for"
+    )
+
+    class Meta:
+        unique_together = ('habit', 'depends_on')
+        verbose_name = "Habit Dependency"
+        verbose_name_plural = "Habit Dependencies"
+
+
+    def __str__(self):
+        return f"{self.habit.title} depends on {self.depends_on.title}"
+    

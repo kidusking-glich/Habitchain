@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
-from .models import Habit, HabitCompletion 
-from .serializers import HabitCompletionSerializer, HabitSerializer
+from .models import Habit, HabitCompletion, HabitDependency 
+from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+from core import serializers
 
 
 # Create your views here.
@@ -153,3 +155,34 @@ class HabitCompletationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def straek_history(self, request, pk=None):
         return Response({"message": "streak history logic not implemented yet"})
+
+
+
+class HabitDependencyViewSet(viewsets.ModelViewSet):
+    queryset = HabitDependency.objects.all()
+    serializer_class = HabitDependencySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return HabitDependency.objects.filter(habit__user=self.request.user)
+
+    def perform_create(self, serializer):
+        habit= serializer.validated_data['habit']
+        dependency = serializer.validated_data['dependency']
+
+        #prevent self.dependency
+        if habit == dependency:
+            raise serializers.ValidationError("A habit cannot depend on itself.")
+            
+        #prevent circular dependencies
+        if HabitDependency.objects.filter(habit=dependency, depends_on=habit).exists():
+            raise serializers.ValidationError("Circular dependency are not allowed.")
+
+        #ownership check
+        if habit.user != self.request.user:
+            raise serializers.ValidationError("You can only add dependencies for your own habits.")
+        
+        if dependency.user != self.request.user:
+            raise serializers.ValidationError("Dependency habit must also belong to you.")
+        
+        serializer.save()

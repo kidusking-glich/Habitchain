@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
-from .models import Habit, HabitCompletion, HabitDependency 
-from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer
+from .models import Habit, HabitCompletion, HabitDependency, Dependency
+from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, DependencySerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from rest_framework.decorators import action
@@ -10,6 +10,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core import serializers
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 # Create your views here.
@@ -186,3 +189,47 @@ class HabitDependencyViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError("Dependency habit must also belong to you.")
         
         serializer.save()
+
+    class DepedencyViewSet(viewsets.ModelViewSet):
+        queryset = Dependency.objects.all()
+        serializer_class = DependencySerializer
+        permission_classes = [permissions.IsAuthenticated]
+
+        def get_queryset(self):
+            return Dependency.objects.filter(user=self.request.user)
+
+        #create dependency 
+        @swagger_auto_schema(
+            operation_summary="Create Habit Dependency",
+            operation_description="""
+            Create a dependency between two habits. 
+            -A dependency means that one habit must be completed before the other can be done.
+            - prevent circular dependencies. 
+            """,
+            request_body=DependencySerializer,
+            responses={
+                201: openapi.Response("Dependency created successfully", DependencySerializer),
+                400:"Validation Error(circular dependency or self-dependency,)"
+            },
+        )
+        def create(self, request, *args, **kwargs):
+            return super().create(request, *args, **kwargs)
+        
+
+        #list dependencies
+        @swagger_auto_schema(
+            operation_summary="List Habit Dependencies",
+            operation_description="Retrieve all habit dependencies for the authenticated user.",
+            responses={200: DependencySerializer(many=True)}
+        )
+        def list(self, request, *args, **kwargs):
+            return super().list(request, *args, **kwargs)
+
+        #delete dependency
+        @swagger_auto_schema(
+            operation_summary="Delete Habit Dependency",
+            operation_description="Remove a dependency between two habits.",
+            responses={204: "Deleted successfully"}
+        )
+        def destroy(self, request, *args, **kwargs):
+            return super().destroy(request, *args, **kwargs)

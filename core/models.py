@@ -76,3 +76,11 @@ class HabitDependency(models.Model):
     def __str__(self):
         return f"{self.habit.title} depends on {self.depends_on.title}"
     
+class streak(models.Model):
+    habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    current_streak = models.IntegerField(default=0)
+    longest_streak = models.IntegerField(default=0)
+    
+    last_completed_date = models.DateField(null=True, blank=True)

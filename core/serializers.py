@@ -39,20 +39,20 @@ class HabitDependencySerializer(serializers.ModelSerializer):
         habit = attrs.get('habit')
         depends_on = attrs.get('depends_on')
 
-        # 1️⃣ Prevent habit depending on itself
+        # 1️ Prevent habit depending on itself
 
         if habit == depends_on:
             raise serializers.ValidationError("A habit cannot depend on itself.")
         
-        # 2️⃣ Prevent duplicate dependencies
+        # 2️ Prevent duplicate dependencies
         if HabitDependency.objects.filter(habit=habit, depends_on=depends_on).exists():
             raise serializers.ValidationError("This dependency already exists.")
-        # 3️⃣ Prevent reverse dependency (A → B while B → A)
+        # 3️ Prevent reverse dependency (A → B while B → A)
 
         if HabitDependency.objects.filter(habit=depends_on, depends_on=habit).exists():
             raise serializers.ValidationError("Circular dependency detected.")
         
-         # 4️⃣ Prevent long circular chains (A → B → C → A)
+         # 4️ Prevent long circular chains (A → B → C → A)
         if self._creates_circular_dependency(habit, depends_on):
             raise serializers.ValidationError("This dependency would create a circular dependency chain.")
         return attrs
@@ -72,3 +72,16 @@ class HabitDependencySerializer(serializers.ModelSerializer):
             if parent.depends_on == habit: #cycle detected
                 return True
             current = parent.depends_on
+
+class SteakSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Streak
+        fields = {
+            'id',
+            'habit',
+            'current_streak',
+            'longest_streak',
+            'last_completed_date',
+            
+            
+        }

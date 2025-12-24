@@ -1,7 +1,11 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions, filters
-from .models import Habit, HabitCompletion, HabitDependency, Dependency
-from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, DependencySerializer
+from rest_framework import viewsets, filters, status
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from datetime import date 
+from .models import Habit, HabitCompletion, HabitDependency, Streak
+from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer
+from .utils import update_streak
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from rest_framework.decorators import action
@@ -13,6 +17,8 @@ from core import serializers
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
+
 
 
 # Create your views here.
@@ -61,7 +67,7 @@ class HabitViewSet(viewsets.ModelViewSet):
     queryset = Habit.objects.all()
 
     serializer_class = HabitSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
 
 
@@ -124,11 +130,11 @@ class HabitViewSet(viewsets.ModelViewSet):
 class HabitCompletationViewSet(viewsets.ModelViewSet):
     serializer_class = HabitCompletionSerializer
    #permission_classes = [IsAuthenticated]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
   
 
     def get_queryset(self):
-        queryset = HabitCompletion.object.filter(user=self.request.user)
+        queryset = HabitCompletion.objects.filter(user=self.request.user)
         habit_id = self.request.query_params.get('habit')
         if habit_id:
             queryset = queryset.filter(habit_id=habit_id)
@@ -164,14 +170,14 @@ class HabitCompletationViewSet(viewsets.ModelViewSet):
 class HabitDependencyViewSet(viewsets.ModelViewSet):
     queryset = HabitDependency.objects.all()
     serializer_class = HabitDependencySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return HabitDependency.objects.filter(habit__user=self.request.user)
 
     def perform_create(self, serializer):
         habit= serializer.validated_data['habit']
-        dependency = serializer.validated_data['dependency']
+        dependency = serializer.validated_data['depends_on']
 
         #prevent self.dependency
         if habit == dependency:
@@ -182,54 +188,94 @@ class HabitDependencyViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError("Circular dependency are not allowed.")
 
         #ownership check
-        if habit.user != self.request.user:
-            raise serializers.ValidationError("You can only add dependencies for your own habits.")
+        if habit.user != self.request.user or dependency.user != self.request.user:
+            raise serializers.ValidationError("Both habits must belong to you.")
+        # if habit.user != self.request.user:
+        #     raise serializers.ValidationError("You can only add dependencies for your own habits.")
         
-        if dependency.user != self.request.user:
-            raise serializers.ValidationError("Dependency habit must also belong to you.")
+        # if dependency.user != self.request.user:
+        #     raise serializers.ValidationError("Dependency habit must also belong to you.")
         
         serializer.save()
 
-    class DepedencyViewSet(viewsets.ModelViewSet):
-        queryset = Dependency.objects.all()
-        serializer_class = DependencySerializer
-        permission_classes = [permissions.IsAuthenticated]
+    # class DepedencyViewSet(viewsets.ModelViewSet):
+    #     queryset = Dependency.objects.all()
+    #     serializer_class = DependencySerializer
+    #     permission_classes = [IsAuthenticated]
 
-        def get_queryset(self):
-            return Dependency.objects.filter(user=self.request.user)
+    #     def get_queryset(self):
+    #         return Dependency.objects.filter(user=self.request.user)
 
-        #create dependency 
-        @swagger_auto_schema(
-            operation_summary="Create Habit Dependency",
-            operation_description="""
-            Create a dependency between two habits. 
-            -A dependency means that one habit must be completed before the other can be done.
-            - prevent circular dependencies. 
-            """,
-            request_body=DependencySerializer,
-            responses={
-                201: openapi.Response("Dependency created successfully", DependencySerializer),
-                400:"Validation Error(circular dependency or self-dependency,)"
-            },
-        )
-        def create(self, request, *args, **kwargs):
-            return super().create(request, *args, **kwargs)
+    #     #create dependency 
+    #     @swagger_auto_schema(
+    #         operation_summary="Create Habit Dependency",
+    #         operation_description="""
+    #         Create a dependency between two habits. 
+    #         -A dependency means that one habit must be completed before the other can be done.
+    #         - prevent circular dependencies. 
+    #         """,
+    #         request_body=DependencySerializer,
+    #         responses={
+    #             201: openapi.Response("Dependency created successfully", DependencySerializer),
+    #             400:"Validation Error(circular dependency or self-dependency,)"
+    #         },
+    #     )
+    #     def create(self, request, *args, **kwargs):
+    #         return super().create(request, *args, **kwargs)
         
 
-        #list dependencies
-        @swagger_auto_schema(
-            operation_summary="List Habit Dependencies",
-            operation_description="Retrieve all habit dependencies for the authenticated user.",
-            responses={200: DependencySerializer(many=True)}
-        )
-        def list(self, request, *args, **kwargs):
-            return super().list(request, *args, **kwargs)
+    #     #list dependencies
+    #     @swagger_auto_schema(
+    #         operation_summary="List Habit Dependencies",
+    #         operation_description="Retrieve all habit dependencies for the authenticated user.",
+    #         responses={200: DependencySerializer(many=True)}
+    #     )
+    #     def list(self, request, *args, **kwargs):
+    #         return super().list(request, *args, **kwargs)
 
-        #delete dependency
-        @swagger_auto_schema(
-            operation_summary="Delete Habit Dependency",
-            operation_description="Remove a dependency between two habits.",
-            responses={204: "Deleted successfully"}
+    #     #delete dependency
+    #     @swagger_auto_schema(
+    #         operation_summary="Delete Habit Dependency",
+    #         operation_description="Remove a dependency between two habits.",
+    #         responses={204: "Deleted successfully"}
+    #     )
+    #     def destroy(self, request, *args, **kwargs):
+    #         return super().destroy(request, *args, **kwargs)
+
+class StreakViewSet(viewsets.ModelViewSet):
+    
+    permission_classes = [IsAuthenticated]
+    #get /habits/pk/streak/
+    def retrieve(self, request, pk=None):
+        habit = get_object_or_404(Habit, pk=pk, user=request.user)
+        streak, _ = Streak.objects.get_or_create(
+            user=request.user,
+            habit=habit
         )
-        def destroy(self, request, *args, **kwargs):
-            return super().destroy(request, *args, **kwargs)
+        
+        serializer = StreakSerializer(streak)
+        return Response(serializer.data)
+    
+    #post /habits/pk/complete/
+    def create(self, request, pk=None):
+        habit = get_object_or_404(Habit, pk=pk, user=request.user)
+
+        #dependency check
+        dependencies = HabitDependency.objects.filter(habit=habit)
+        for dep in dependencies:
+            #if dep.depends_on.last_completed_date != date.today():
+            if not HabitCompletion.objects.filter(
+                habit=dep.depends_on,
+                user=request.user,
+                completed_at=date.today()
+            ).exists():
+                return Response(
+                    {"error": f"Complete '{dep.depends_on.title}' first."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+
+        streak, _ = Streak.objects.get_or_create(habit=habit)
+        updated = update_streak(streak)
+        serializer = StreakSerializer(updated)
+        return Response(serializer.data, status=status.HTTP_200_OK)

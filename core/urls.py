@@ -12,10 +12,15 @@ streak_view = StreakViewSet.as_view({
     "post": "create",
 })
 
+streak_history_view = StreakViewSet.as_view({
+    "get": "list",
+})
+
 urlpatterns = router.urls
 
 
 urlpatterns += [
     path("habits/<int:pk>/streak/", streak_view, name="habit-streak"),
     path("habits/<int:pk>/complete/", streak_view, name="habit-complete"),
+    path("habits/<int:pk>/streak_history/", streak_history_view, name="habitcompletion-straek-history"),
 ]

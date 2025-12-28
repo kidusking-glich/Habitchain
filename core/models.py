@@ -4,18 +4,19 @@ from django.contrib.auth.models import User
 # Create your models here.
 class Habit(models.Model):
     DIFFICULTY_CHOICES = [
-        ("easy", 'Easy'),
-        ("medium", "Medium"),
-        ("hard", "Hard"),
+        (1, 'Easy'),
+        (2, "Medium"),
+        (3, "Hard"),
+        (4, "Very Hard"),
+        (5, "Extreme"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="habits")
     title = models.CharField(max_length=255)
     description =models.TextField(blank=True)
-    difficulty = models.CharField(
-        max_length=10,
+    difficulty = models.IntegerField(
         choices=DIFFICULTY_CHOICES,
-        default="easy"
+        default=1
     )
     category = models.CharField(max_length=100, blank=True)
     base_score = models.IntegerField(default=10)
@@ -45,28 +46,33 @@ class HabitCompletion(models.Model):
     class Meta:
         unique_together = ('habit', 'completed_at')
     def __str__(self):
-        return f"{self.user.username} completed on {self.habit.title}"
+        return f"{self.user.username} completed  {self.habit.title} on {self.completed_at}"
     
 
 class Streak(models.Model):
-    habit = models.OneToOneField(Habit, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="streaks")
+    habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name="streaks")
+    #habit = models.OneToOneField(Habit, on_delete=models.CASCADE)
     current_streak = models.IntegerField(default=0)  
     longest_streak = models.IntegerField(default=0)
     
     last_completed_date = models.DateField(null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.habit.title} -{self.current_streak} day streak"
-    
-class DifficultyAdjustmentLog(models.Model):
-    Habit =models.ForeignKey(Habit, on_delete=models.CASCADE)
-    old_difficulty = models.CharField(max_length=10)
-    new_difficulty = models.CharField(max_length=10)
-    reason =models.TextField()
-    timestamp =  models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('user', 'habit')
 
     def __str__(self):
-        return f"{self.habit.title} adjusted {self.old_difficulty} → {self.new_difficulty}"
+        return f"{self.user.username} - {self.habit.title} ({self.current_streak} days)"
+    
+class DifficultyAdjustmentLog(models.Model):
+    habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name="difficulty_logs")
+    old_difficulty = models.IntegerField()
+    new_difficulty = models.IntegerField()
+    reason = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.habit.title}: {self.old_difficulty} → {self.new_difficulty}"
 
 
 

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from datetime import date 
 from .models import Habit, HabitCompletion, HabitDependency, Streak
 from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer
-from .utils import update_streak
+from .utils import evaluate_difficulty, update_streak
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from rest_framework.decorators import action
@@ -90,6 +90,9 @@ class HabitViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+@extend_schema(
+    description="Difficulty automatically adjusts based on recent completion performance."
+)
 
 @extend_schema_view(
     list=extend_schema(
@@ -177,105 +180,87 @@ class HabitDependencyViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         habit= serializer.validated_data['habit']
-        dependency = serializer.validated_data['depends_on']
+        depends_on = serializer.validated_data['depends_on']
 
         #prevent self.dependency
-        if habit == dependency:
+        if habit == depends_on:
             raise serializers.ValidationError("A habit cannot depend on itself.")
             
         #prevent circular dependencies
-        if HabitDependency.objects.filter(habit=dependency, depends_on=habit).exists():
+        if HabitDependency.objects.filter(habit=depends_on, depends_on=habit).exists():
             raise serializers.ValidationError("Circular dependency are not allowed.")
 
         #ownership check
-        if habit.user != self.request.user or dependency.user != self.request.user:
+        if habit.user != self.request.user or depends_on.user != self.request.user:
             raise serializers.ValidationError("Both habits must belong to you.")
         # if habit.user != self.request.user:
         #     raise serializers.ValidationError("You can only add dependencies for your own habits.")
         
-        # if dependency.user != self.request.user:
+        # if depends_on.user != self.request.user:
         #     raise serializers.ValidationError("Dependency habit must also belong to you.")
         
         serializer.save()
 
-    # class DepedencyViewSet(viewsets.ModelViewSet):
-    #     queryset = Dependency.objects.all()
-    #     serializer_class = DependencySerializer
-    #     permission_classes = [IsAuthenticated]
 
-    #     def get_queryset(self):
-    #         return Dependency.objects.filter(user=self.request.user)
-
-    #     #create dependency 
-    #     @swagger_auto_schema(
-    #         operation_summary="Create Habit Dependency",
-    #         operation_description="""
-    #         Create a dependency between two habits. 
-    #         -A dependency means that one habit must be completed before the other can be done.
-    #         - prevent circular dependencies. 
-    #         """,
-    #         request_body=DependencySerializer,
-    #         responses={
-    #             201: openapi.Response("Dependency created successfully", DependencySerializer),
-    #             400:"Validation Error(circular dependency or self-dependency,)"
-    #         },
-    #     )
-    #     def create(self, request, *args, **kwargs):
-    #         return super().create(request, *args, **kwargs)
-        
-
-    #     #list dependencies
-    #     @swagger_auto_schema(
-    #         operation_summary="List Habit Dependencies",
-    #         operation_description="Retrieve all habit dependencies for the authenticated user.",
-    #         responses={200: DependencySerializer(many=True)}
-    #     )
-    #     def list(self, request, *args, **kwargs):
-    #         return super().list(request, *args, **kwargs)
-
-    #     #delete dependency
-    #     @swagger_auto_schema(
-    #         operation_summary="Delete Habit Dependency",
-    #         operation_description="Remove a dependency between two habits.",
-    #         responses={204: "Deleted successfully"}
-    #     )
-    #     def destroy(self, request, *args, **kwargs):
-    #         return super().destroy(request, *args, **kwargs)
-
-class StreakViewSet(viewsets.ModelViewSet):
-    
+class StreakViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    #get /habits/pk/streak/
+
+    # GET /habits/{id}/streak/
     def retrieve(self, request, pk=None):
         habit = get_object_or_404(Habit, pk=pk, user=request.user)
+
         streak, _ = Streak.objects.get_or_create(
             user=request.user,
-            habit=habit
+            habit=habit,
+            defaults={
+                "current_streak": 0,
+                "longest_streak": 0
+            }
         )
-        
+
         serializer = StreakSerializer(streak)
         return Response(serializer.data)
-    
-    #post /habits/pk/complete/
+
+    # GET /habits/{id}/streak_history/
+    def list(self, request, pk=None):
+        return Response({"message": "streak history logic not implemented yet"})
+
+    # POST /habits/{id}/complete/
     def create(self, request, pk=None):
         habit = get_object_or_404(Habit, pk=pk, user=request.user)
 
-        #dependency check
+        # Dependency enforcement
         dependencies = HabitDependency.objects.filter(habit=habit)
         for dep in dependencies:
-            #if dep.depends_on.last_completed_date != date.today():
-            if not HabitCompletion.objects.filter(
+            completed_today = HabitCompletion.objects.filter(
                 habit=dep.depends_on,
                 user=request.user,
                 completed_at=date.today()
-            ).exists():
+            ).exists()
+
+            if not completed_today:
                 return Response(
                     {"error": f"Complete '{dep.depends_on.title}' first."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        # Create completion (idempotent)
+        HabitCompletion.objects.get_or_create(
+            habit=habit,
+            user=request.user,
+            completed_at=date.today()
+        )
 
-        streak, _ = Streak.objects.get_or_create(habit=habit)
-        updated = update_streak(streak)
-        serializer = StreakSerializer(updated)
+        streak, _ = Streak.objects.get_or_create(
+            user=request.user,
+            habit=habit,
+            defaults={
+                "current_streak": 0,
+                "longest_streak": 0
+            }
+        )
+        updated_streak = update_streak(streak)
+        evaluate_difficulty(habit)
+
+        serializer = StreakSerializer(updated_streak)
         return Response(serializer.data, status=status.HTTP_200_OK)

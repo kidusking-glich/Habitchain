@@ -52,9 +52,13 @@ REST_FRAMEWORK = {
     #'DEFAULT_PAGINATION_CLASS': None,
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -66,21 +70,35 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'SECURITY': [
         {
-            "jwtAuth": []
+            
+            "bearerAuth": []
         }
     ],
-    'AUTHENTICATION_WHITELIST': [],
-}
-SPECTACULAR_SETTINGS['COMPONENTS'] = {
-    'securitySchemes': {
-        'jwtAuth': {
-            'type': 'http',
-            'scheme': 'bearer',
-            'bearerFormat': 'JWT',
-
+    #'AUTHENTICATION_WHITELIST': [],
+    "COMPONENTS": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
         }
-    }
+    },
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    
+
 }
+# SPECTACULAR_SETTINGS['COMPONENTS'] = {
+#     'securitySchemes': {
+#         'jwtAuth': {
+#             'type': 'http',
+#             'scheme': 'bearer',
+#             'bearerFormat': 'JWT',
+
+#         }
+#     }
+# }
 
 
 MIDDLEWARE = [

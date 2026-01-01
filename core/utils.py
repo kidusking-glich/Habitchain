@@ -96,3 +96,82 @@ def evaluate_difficulty(habit):
         )
 
     return habit
+
+# def adjust_difficulty(habit, streak):
+#     today = timezone.localdate()
+#     #difficulty = habit.difficulty
+#     old = habit.difficulty
+#     new = old
+#     if habit.streak.current_streak >= 7:
+#         habit.difficulty = min(habit.difficulty + 1, 5)
+#         habit.save()
+
+#         DifficultyAdjustmentLog.objects.create(
+#             habit=habit,
+#             old_difficulty=old,
+#             new_difficulty=habit.difficulty,
+#             reason="7-day streak achieved"
+#         )
+
+#     if difficulty is None:
+#         return habit
+
+#     if (
+#         streak.current_sreak >= 7
+#         and difficulty < 5
+#         and streak.last_completed_date == today
+#     ):
+#         habit.difficulty += 1
+
+#         DifficultyAdjustmentLog.objects.create(
+#             habit=habit,
+#             old_difficulty=difficulty,
+#             new_difficulty=habit.difficulty,
+#             reason="7-day streak achieved"
+#         )
+    
+#     elif (
+#         streak.last_completed_date
+#         and today - streak.last_completed_date > timedelta(days=2)
+#         and difficulty > 1
+#     ):
+#         habit.difficulty -= 1
+
+#         DifficultyAdjustmentLog.objects.create(
+#             habit=habit,
+#             old_difficulty=difficulty,
+#             new_difficulty=habit.difficulty,
+#             reason="Missed more than 2 days"
+#         )
+
+#     habit.save()
+#     return habit
+
+def adjust_difficulty(habit, streak):
+    today = timezone.localdate()
+    old = habit.difficulty
+    new = old
+
+    if streak.current_streak >= 7 and streak.last_completed_date == today:
+        new = min(old + 1, 5)
+    elif (
+        streak.last_completed_date 
+        and today - streak.last_completed_date > timedelta(days=2)
+        ):
+        new = max(old - 1, 1)
+
+    if new == old:
+        return habit
+    
+    habit.difficulty = new
+    habit.save(update_fields=['difficulty'])
+    
+
+    DifficultyAdjustmentLog.objects.create(
+        habit=habit,
+        old_difficulty=old,
+        new_difficulty=new,
+        reason="7-day streak achieved" if new > old else "Missed more than 2 days"
+    )
+
+    return habit

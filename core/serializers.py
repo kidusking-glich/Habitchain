@@ -8,15 +8,21 @@ class HabitSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ['id', 'user', 'created_at', 'difficulty']
 
-class HabitDependencySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = HabitDependency
-        fields = "__all__"
+# class HabitDependencySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = HabitDependency
+#         fields = "__all__"
 
 class StreakSerializer(serializers.ModelSerializer):
     class Meta:
         model = Streak
-        fields = "__all__"
+        fields = [
+            "id",
+            "habit",
+            "current_streak",
+            "longest_streak",
+            "last_completed_date",
+        ]#"__all__"
 
 class DifficultyAdjustmentLogSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,21 +63,43 @@ class HabitDependencySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This dependency would create a circular dependency chain.")
         return attrs
     
-    def creates_cycle(self, habit, depends_on):
-        """
-        Detect cycles by walking up the dependency chain.
-        Example of cycle:
-        A → B → C → A
-        """
-        current = depends_on
+    # def creates_cycle(self, habit, depends_on):
+    #     """
+    #     Detect cycles by walking up the dependency chain.
+    #     Example of cycle:
+    #     A → B → C → A
+    #     """
+    #     current = depends_on
 
-        while True:
-            parent = HabitDependency.objects.filter(habit=current).first()
-            if not parent:
-                return False
-            if parent.depends_on == habit: #cycle detected
+    #     while True:
+    #         parent = HabitDependency.objects.filter(habit=current).first()
+    #         if not parent:
+    #             return False
+    #         if parent.depends_on == habit: #cycle detected
+    #             return True
+    #         current = parent.depends_on
+
+    def _creates_circular_dependency(self, habit, depends_on):
+
+        visited = set()
+
+        def dfs(current):
+            if current == habit:
                 return True
-            current = parent.depends_on
+            if current in visited:
+                return False
+            visited.add(current)
+
+            parents = HabitDependency.objects.filter(
+                habit=current
+            ).values_list('depends_on', flat=True)
+
+            for parent_id in parents:
+                parent_habit = Habit.objects.get(id=parent_id)
+                if dfs(parent_habit):
+                    return True
+            return False    
+        return dfs(depends_on)
 
 class SteakSerializer(serializers.ModelSerializer):
     class Meta:

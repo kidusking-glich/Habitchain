@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from datetime import date 
 from .models import Habit, HabitCompletion, HabitDependency, Streak
 from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer
-from .utils import evaluate_difficulty, update_streak
+from .utils import adjust_difficulty, evaluate_difficulty, update_streak
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from rest_framework.decorators import action
@@ -260,6 +260,7 @@ class StreakViewSet(viewsets.ViewSet):
             }
         )
         updated_streak = update_streak(streak)
+        adjust_difficulty(habit, updated_streak)
         evaluate_difficulty(habit)
 
         serializer = StreakSerializer(updated_streak)

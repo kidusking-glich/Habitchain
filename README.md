@@ -230,19 +230,6 @@ Access:
 
 ---
 
-## 📈 Assessment Coverage
-
-This project satisfies:
-
-* ✅ RESTful API design
-* ✅ Authentication & permissions
-* ✅ Business logic implementation
-* ✅ Database modeling & migrations
-* ✅ Error handling & validation
-* ✅ Documentation (Swagger + README)
-* ✅ Real-world algorithm (dynamic difficulty)
-
----
 
 ## 👤 Author
 

@@ -6,6 +6,7 @@ django-filter==25.2
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
+gunicorn==21.2.0
 drf-yasg==1.21.11
 inflection==0.5.1
 iso8601==2.1.0

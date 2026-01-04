@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_spectacular',
-    'django_admin_styling',
+    'django_admin_bootstrap5',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -188,18 +188,9 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
-# Django Admin Styling Configuration
-DJANGO_ADMIN_STYLING_THEME = 'admin'
-DJANGO_ADMIN_STYLING_COLORS = {
-    'primary': '#1c7a44',
-    'secondary': '#2e7d32',
-    'accent': '#4caf50',
-    'link': '#1c7a44',
-}
-
 
 # Load environment variables (useful for local development)
-load_dotenv() 
+load_dotenv()
 
 # ... other settings
 

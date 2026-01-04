@@ -217,3 +217,15 @@ else:
     
     # 2. Add the host mentioned in the log explicitly (for quick fix assurance)
     ALLOWED_HOSTS.append('habitchain-5ad6.onrender.com')
+BASE_DIR = Path(__file__).resolve().parent.parent
+SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key-for-dev-only')
+DEBUG = os.getenv('DJANGO_DEBUG') == 'True'
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    # Explicitly adding the host from your logs
+    'habitchain-5ad6.onrender.com',
+]
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)

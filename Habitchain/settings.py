@@ -132,10 +132,10 @@ WSGI_APPLICATION = 'Habitchain.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'habitchain_db',
+        'NAME': 'railway',
         'USER': 'root',
-        'PASSWORD': 'Root1234',
-        'HOST': '127.0.0.1',
+        'PASSWORD': 'yfSFjyJNlMDwDNKUWQXjmdoznJNGAKjM',
+        'HOST': 'mysql.railway.internal',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"

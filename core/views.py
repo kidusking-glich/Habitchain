@@ -1,12 +1,13 @@
 from django.utils import timezone
 from django.shortcuts import render
+from django.contrib.auth import get_user_model
 #from rest_framework.views import APIView
 from rest_framework import viewsets, filters, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from datetime import date 
 from .models import Habit, HabitCompletion, HabitDependency, Streak
-from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer, StreakHistorySerializer
+from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer, StreakHistorySerializer, UserSerializer
 from .utils import adjust_difficulty, evaluate_difficulty, update_streak
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
@@ -17,12 +18,30 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core import serializers
 
-
-
-
-
+User = get_user_model()
 
 # Create your views here.
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Register a new user",
+    description="Create a new user account with username and password."
+)
+class UserRegistrationView(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+    serializer_class = UserSerializer
+
+    def create(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {
+                "message": "User created successfully",
+                "user": UserSerializer(user).data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 @extend_schema_view(
     list=extend_schema(tags=["Habit Completions"]),

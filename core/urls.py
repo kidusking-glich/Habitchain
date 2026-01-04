@@ -1,11 +1,12 @@
 from rest_framework.routers import DefaultRouter
-from .views import HabitCompletationViewSet, HabitDependencyViewSet, HabitViewSet, StreakViewSet
+from .views import HabitCompletationViewSet, HabitDependencyViewSet, HabitViewSet, StreakViewSet, UserRegistrationView
 from django.urls import path, include
 
 router = DefaultRouter()
 router.register(r'habits', HabitViewSet, basename='habit')
 router.register(r'completions', HabitCompletationViewSet, basename='completion')
 router.register(r'dependencies', HabitDependencyViewSet, basename='dependencies')
+router.register(r'users', UserRegistrationView, basename='users')
 
 
 streak_view = StreakViewSet.as_view({

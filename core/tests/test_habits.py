@@ -352,11 +352,32 @@ class HabitTests(APITestCase):
         streak2 = Streak.objects.get(habit=habit2)
         self.assertEqual(streak2.current_streak, 1)
 
-    def test_streak_history_endpoint_placeholder(self):
+    def test_streak_history_endpoint(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        
         habit = Habit.objects.create(title="History Habit", user=self.user)
-        url = reverse('habitcompletion-straek-history', args=[habit.id])  # GET /habits/{id}/straek_history/
+        
+        # Create completions for a streak (5 consecutive days)
+        today = timezone.localdate()
+        for i in range(5):
+            # Use different dates: today-4, today-3, today-2, today-1, today
+            completion_date = today - timedelta(days=4-i)
+            HabitCompletion.objects.create(
+                habit=habit,
+                user=self.user,
+                completed_at=completion_date
+            )
+        
+        url = reverse('habitcompletion-straek-history', args=[habit.id])
         response = self.client.get(url, **self.auth_headers)
+        
         self.assertEqual(response.status_code, 200)
-        self.assertIn("message", response.data)
-        self.assertEqual(response.data["message"], "streak history logic not implemented yet")
+        self.assertEqual(response.data['habit_id'], habit.id)
+        self.assertEqual(response.data['habit_title'], "History Habit")
+        self.assertEqual(response.data['total_completions'], 5)
+        self.assertEqual(len(response.data['streak_segments']), 1)
+        self.assertEqual(response.data['streak_segments'][0]['length'], 5)
+        self.assertIn('start_date', response.data['streak_segments'][0])
+        self.assertIn('end_date', response.data['streak_segments'][0])
 

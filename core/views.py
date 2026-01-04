@@ -1,10 +1,12 @@
+from django.utils import timezone
 from django.shortcuts import render
+#from rest_framework.views import APIView
 from rest_framework import viewsets, filters, status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from datetime import date 
 from .models import Habit, HabitCompletion, HabitDependency, Streak
-from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer
+from .serializers import HabitCompletionSerializer, HabitDependencySerializer, HabitSerializer, StreakSerializer, StreakHistorySerializer
 from .utils import adjust_difficulty, evaluate_difficulty, update_streak
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
@@ -15,8 +17,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core import serializers
 
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+
 
 
 
@@ -135,6 +136,35 @@ class HabitCompletationViewSet(viewsets.ModelViewSet):
    #permission_classes = [IsAuthenticated]
     permission_classes = [IsAuthenticated]
   
+    # def create(self, request, *args, **kwargs):
+    #     habit = Habit.objects.get(id=request.data.get('habit'))
+    #     today = date.today()
+
+    #     dependencies = HabitDependency.objects.filter(habit=habit)
+    #     for dep in dependencies:
+    #         if not HabitCompletion.objects.filter(
+    #             habit=dep.depends_on,
+    #             completed_at__date=today
+    #         ).exists():
+    #             return Response(
+    #                 {"detail": f"Complete '{dep.depends_on.title}' first."},
+    #                 status=400
+    #             )
+
+    #     completion = HabitCompletion.objects.create(
+    #         habit=habit,
+    #         user=request.user
+    #     )
+
+    #     streak, _ = Streak.objects.get_or_create(user=request.user, habit=habit)
+    #     update_streak(streak)
+
+    #     adjust_difficulty(habit, streak)
+
+    #     return Response(
+    #         HabitCompletionSerializer(completion).data,
+    #         status=201
+    #     )
 
     def get_queryset(self):
         queryset = HabitCompletion.objects.filter(user=self.request.user)
@@ -145,29 +175,14 @@ class HabitCompletationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @extend_schema(tags=["Habit Streaks"])
+    #@extend_schema(tags=["Habit Streaks"])
 
+    # Done 
+    # @action(detail=True, methods=['get'])
+    # def streak(self, request, pk=None):
+    #     return Response({"message": "streak logic not implemented yet"})
 
-    @action(detail=True, methods=['get'])
-    def streak(self, request, pk=None):
-        return Response({"message": "streak logic not implemented yet"})
-
-    @extend_schema(
-            summary="Get Streak History",
-            description=(
-                "Returns all streak segments for this habit, including start and end dates of each streak.",
-                "for each streak block."
-            ),
-            responses={
-                200: OpenApiTypes.OBJECT,
-            }
-            
-    )
-    
-    @action(detail=True, methods=['get'])
-    def straek_history(self, request, pk=None):
-        return Response({"message": "streak history logic not implemented yet"})
-
+    # Note: straek_history is implemented in StreakViewSet at /habits/{id}/streak_history/
 
 
 class HabitDependencyViewSet(viewsets.ModelViewSet):
@@ -217,13 +232,82 @@ class StreakViewSet(viewsets.ViewSet):
                 "longest_streak": 0
             }
         )
+        #streak, = Streak.objects.get_or_create(habit=habit)
 
         serializer = StreakSerializer(streak)
         return Response(serializer.data)
 
     # GET /habits/{id}/streak_history/
     def list(self, request, pk=None):
-        return Response({"message": "streak history logic not implemented yet"})
+        # This is called via /habits/{pk}/streak_history/ URL
+        # pk is passed via the URL pattern
+        from datetime import timedelta
+        # Get pk from kwargs (passed by URL router)
+        habit_pk = self.kwargs.get('pk')
+        if not habit_pk:
+            return Response({"error": "Habit ID required"}, status=400)
+        habit = get_object_or_404(Habit, pk=habit_pk, user=request.user)
+        
+        # Get all completion dates for this habit, ordered
+        completions = HabitCompletion.objects.filter(
+            habit=habit,
+            user=request.user
+        ).order_by('completed_at').values_list('completed_at', flat=True)
+        
+        if not completions:
+            return Response({
+                "habit_id": habit.id,
+                "habit_title": habit.title,
+                "streak_segments": [],
+                "total_completions": 0,
+                "current_streak": 0,
+                "longest_streak": 0
+            })
+        
+        # Get current streak info
+        streak, _ = Streak.objects.get_or_create(
+            user=request.user,
+            habit=habit,
+            defaults={"current_streak": 0, "longest_streak": 0}
+        )
+        
+        # Compute streak segments from completion dates
+        streak_segments = []
+        current_segment = None
+        
+        for i, comp_date in enumerate(completions):
+            if i == 0:
+                current_segment = {'start': comp_date, 'end': comp_date}
+            else:
+                prev_date = completions[i - 1]
+                if comp_date == prev_date + timedelta(days=1):
+                    # Continue the streak
+                    current_segment['end'] = comp_date
+                else:
+                    # Streak broken, save current and start new
+                    streak_segments.append({
+                        'start_date': current_segment['start'],
+                        'end_date': current_segment['end'],
+                        'length': (current_segment['end'] - current_segment['start']).days + 1
+                    })
+                    current_segment = {'start': comp_date, 'end': comp_date}
+        
+        # Don't forget the last segment
+        if current_segment:
+            streak_segments.append({
+                'start_date': current_segment['start'],
+                'end_date': current_segment['end'],
+                'length': (current_segment['end'] - current_segment['start']).days + 1
+            })
+        
+        return Response({
+            "habit_id": habit.id,
+            "habit_title": habit.title,
+            "streak_segments": streak_segments,
+            "total_completions": len(completions),
+            "current_streak": streak.current_streak,
+            "longest_streak": streak.longest_streak
+        })
 
     # POST /habits/{id}/complete/
     def create(self, request, pk=None):
@@ -265,3 +349,34 @@ class StreakViewSet(viewsets.ViewSet):
 
         serializer = StreakSerializer(updated_streak)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # GET /habits/{id}/streak_history/
+    @action(detail=True, methods=['get'], url_path='streak_history', url_name='streak-history')
+    def streak_history(self, request, pk=None):
+        from datetime import timedelta
+        habit = get_object_or_404(Habit, pk=pk, user=request.user)
+
+
+# class HabitCompleteAPIView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, pk):
+#         habit = get_object_or_404(Habit, id=pk, user=request.user)
+
+#         # Create completion (idempotent per day logic should already exist)
+#         completion, created = HabitCompletion.objects.get_or_create(
+#             habit=habit,
+#             completed_at__date=timezone.localdate(),
+#             defaults={"habit": habit},
+#         )
+
+#         streak, _ = Streak.objects.get_or_create(habit=habit)
+#         update_streak(streak)
+#         evaluate_difficulty(habit)
+
+#         return Response({
+#             "message": "Habit completed",
+#             "current_streak": streak.current_streak,
+#             "longest_streak": streak.longest_streak,
+#             "difficulty": habit.difficulty
+#         })

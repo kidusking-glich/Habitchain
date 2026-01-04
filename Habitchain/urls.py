@@ -42,8 +42,8 @@ urlpatterns = [
         name='swagger-ui',
     ),
     #Documentation endpoint
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    #path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    #path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
     #JWT authentication endpoints
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

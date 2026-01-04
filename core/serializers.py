@@ -113,3 +113,16 @@ class SteakSerializer(serializers.ModelSerializer):
             
             
         }
+
+class StreakSegmentSerializer(serializers.Serializer):
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    length = serializers.IntegerField()
+
+class StreakHistorySerializer(serializers.Serializer):
+    habit_id = serializers.IntegerField()
+    habit_title = serializers.CharField()
+    streak_segments = StreakSegmentSerializer(many=True)
+    total_completions = serializers.IntegerField()
+    current_streak = serializers.IntegerField()
+    longest_streak = serializers.IntegerField()

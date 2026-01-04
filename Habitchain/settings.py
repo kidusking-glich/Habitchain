@@ -30,9 +30,6 @@ SECRET_KEY = 'django-insecure-u%)k9ia$t2n^t%sfa0(y35v47_hmfujyql9wsfi8ukel*thx)x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -202,14 +199,13 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 
 # The hostnames Django is allowed to serve.
-ALLOWED_HOSTS = []
-
 # Add local hosts for development
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 else:
-    # 1. Add your specific Render URL
-    # Replace 'habitchain-5ad6.onrender.com' with your actual Render URL
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+    
+    # 1. Add your specific Render URL from environment variable
     RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
     
     if RENDER_EXTERNAL_HOSTNAME:
@@ -217,15 +213,3 @@ else:
     
     # 2. Add the host mentioned in the log explicitly (for quick fix assurance)
     ALLOWED_HOSTS.append('habitchain-5ad6.onrender.com')
-BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key-for-dev-only')
-DEBUG = os.getenv('DJANGO_DEBUG') == 'True'
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    # Explicitly adding the host from your logs
-    'habitchain-5ad6.onrender.com',
-]
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)

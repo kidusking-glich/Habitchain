@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 
+#for deployement 
+import os
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -185,3 +189,31 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+
+# Load environment variables (useful for local development)
+load_dotenv() 
+
+# ... other settings
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# It's highly recommended to set DEBUG based on an environment variable.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+
+# The hostnames Django is allowed to serve.
+ALLOWED_HOSTS = []
+
+# Add local hosts for development
+if DEBUG:
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+else:
+    # 1. Add your specific Render URL
+    # Replace 'habitchain-5ad6.onrender.com' with your actual Render URL
+    RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    
+    if RENDER_EXTERNAL_HOSTNAME:
+        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    
+    # 2. Add the host mentioned in the log explicitly (for quick fix assurance)
+    ALLOWED_HOSTS.append('habitchain-5ad6.onrender.com')

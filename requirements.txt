@@ -27,3 +27,4 @@ typeit==3.11.1.3
 typing-inspect==0.8.0
 typing_extensions==4.8.0
 uritemplate==4.2.0
+python-dotenv==1.0.1

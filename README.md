@@ -229,6 +229,28 @@ Access:
 * Swagger: `http://127.0.0.1:8000/api/docs/#`
 
 ---
+Absolutely! From everything we’ve discussed and the code you shared, here’s a clear list of **not yet implemented / planned features** you can add to your `README.md` under a **“Future Improvements / Not Yet Implemented Features”** section:
+
+---
+
+### **Future Improvements / Not Yet Implemented Features**
+
+
+
+1. **Advanced Habit Analytics**
+
+   * Provide charts and trends showing habit completion over time.
+   * Include visualizations of streak consistency, completion rates, and difficulty adjustment trends.
+
+2. **Notifications & Reminders**
+
+   * Push notifications or emails to remind users to complete habits.
+   * Customizable reminder times for different habits.
+
+3. **Social / Gamification Features**
+
+   * Allow users to share achievements with friends or participate in habit challenges.
+   * Introduce rewards or badges for long streaks.
 
 
 ## 👤 Author
